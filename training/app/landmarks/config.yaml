@@ -1,0 +1,118 @@
+##global parameterxx
+run_dir:  '/xx/xx/xx/xx/xx/checkpoint'
+prefix:   'xx/xx/xx/xx/xx/datasets' ##which folder to save image&label
+
+# run_name:  'unet2d' #'posenet' #'posenet' #'unet'
+run_name:  unet2d
+
+cuda_devices: '0'
+seed:   42          ## random seed,可以是任意的整数，目的是做一个标记,不同的x的值固定的是不同的随机数
+epochs: 350
+landmarks_num: 14   ## 标记点的个数
+
+##################### dataset #####################
+use_background_channel: True
+
+##
+sigma: 3
+size:  [512, 512] #resize to W*H
+
+# 迭代器，每次返回一batch的数据，并利用多进程来加速数据处理
+dataloader:
+    train:
+        batch_size: 8
+        # num_workers: 0
+        shuffle: true
+        drop_last: true
+    validate:
+        batch_size: 1
+        # num_workers: 1
+        shuffle: false
+        drop_last: true
+    test:
+        batch_size: 1
+        # num_workers: 1
+        shuffle: true
+
+# data_aug
+# transform_params: 
+#     rotate_rate: 0.3
+#     angle: 20
+#     flip_rate: 0.3
+#     axis: 2
+#     translate_rate: 0.2
+#     offsets: 10
+
+transform_params: true #true
+##################### dataset #####################
+is_heatmap: false
+
+###################### model ######################
+checkpoint: ''    ## changes path when swithes betwen train and test,保存每个epoch后的模型参数
+# model: 'unet2d'  # 'unet2d'   ## which model to use
+model: 'unet2d'
+#model: 'posenet' #'posenet' #'unet++'#   ## which model to use
+
+unet2d:
+    in_channels:  3
+    out_channels: 14 
+
+unet++:
+    in_channels:  3
+    out_channels: 2
+
+attunet:
+    in_channels:  3
+    out_channels: 14
+
+###################### model ######################
+
+###################### learner ######################
+learning:
+    # 损失
+    loss: 'bce' #'bce'二元交叉熵，适合处理多分类的损失问题，常与sigmoid()结合使用
+    l1:
+        reduction: 'sum'
+    l2:
+        # reduction: 'sum'
+        reduction: 'mean'
+    # 衡量model和label之间的二进制交叉熵的标准
+    bce:
+        # 指定的输出格式
+        # reduction: 'mean'
+        reduction: 'sum'
+    
+    focal:
+        # 指定的输出格式
+        reduction: 'sum'
+    
+    # adam：1.结合了Momentum 2.动态调节学习率 3.把前面的历史信息逐步遗忘
+    optim: 'adam'
+    adam: 
+        lr: 0.01
+        weight_decay: 0.0001 # 0.00001
+    sgd:
+        lr: 0.01
+    
+
+    # 使用lr_scheduler类，steplr等间隔调整学习率
+    use_scheduler: false
+    scheduler: 'cycliclr' # 学习率的调整规律
+    steplr:
+        step_size: 30 # 每30个epoch后更新一次
+        gamma: 0.5 # 更新lr的乘法因子
+        
+    # 循环学习率
+    cycliclr:
+        base_lr: 0.001 # 0.00008
+        max_lr: 0.01 # 0.008
+        step_size_up: 2000 # step_size_up = len(dataset)/batch_size * (2~10)
+        step_size_down: 2000 # same as step_size_up
+        mode: 'triangular2' # 该方法每个周期后学习率差异下降
+        cycle_momentum: false
+###################### learner ######################
+
+###################### training ######################
+save_freq: 5
+eval_freq: 1
+###################### training ######################
